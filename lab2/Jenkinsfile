@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     environment {
-        PYTHON_VENV = "${WORKSPACE}/venv"
+        PYTHON_VENV = "${WORKSPACE}/lab2/venv"
         DATA_DIR = "${WORKSPACE}/lab2/artifacts/data"
         MODEL_DIR = "${WORKSPACE}/lab2/artifacts/models"
         REPORT_DIR = "${WORKSPACE}/lab2/artifacts/reports"
@@ -16,14 +16,13 @@ pipeline {
             }
         }
         
-        stage('Setup Python Environment') {
+        stage('Setup Python') {
             steps {
                 script {
-                    // Создание виртуального окружения
                     sh '''
                         cd lab2
-                        python3 -m venv ${PYTHON_VENV}
-                        source ${PYTHON_VENV}/bin/activate
+                        python3 -m venv venv
+                        source venv/bin/activate
                         pip install --upgrade pip
                         pip install -r requirements.txt
                     '''
@@ -37,15 +36,8 @@ pipeline {
                     sh '''
                         source ${PYTHON_VENV}/bin/activate
                         cd lab2
-                        python data_creation.py \
-                            --source synthetic \
-                            --output-dir ${DATA_DIR}
+                        python data_creation.py --output-dir ${DATA_DIR}
                     '''
-                }
-            }
-            post {
-                success {
-                    archiveArtifacts artifacts: 'lab2/artifacts/data/*.csv', allowEmptyArchive: false
                 }
             }
         }
@@ -56,9 +48,7 @@ pipeline {
                     sh '''
                         source ${PYTHON_VENV}/bin/activate
                         cd lab2
-                        python data_preprocessing.py \
-                            --data-dir ${DATA_DIR} \
-                            --output-dir ${DATA_DIR}
+                        python data_preprocessing.py --data-dir ${DATA_DIR} --output-dir ${DATA_DIR}
                     '''
                 }
             }
@@ -70,16 +60,8 @@ pipeline {
                     sh '''
                         source ${PYTHON_VENV}/bin/activate
                         cd lab2
-                        python model_preparation.py \
-                            --data-dir ${DATA_DIR} \
-                            --model-dir ${MODEL_DIR} \
-                            --model-type logistic
+                        python model_preparation.py --data-dir ${DATA_DIR} --model-dir ${MODEL_DIR}
                     '''
-                }
-            }
-            post {
-                success {
-                    archiveArtifacts artifacts: 'lab2/artifacts/models/*.pkl', allowEmptyArchive: false
                 }
             }
         }
@@ -90,35 +72,8 @@ pipeline {
                     sh '''
                         source ${PYTHON_VENV}/bin/activate
                         cd lab2
-                        python model_testing.py \
-                            --data-dir ${DATA_DIR} \
-                            --model-dir ${MODEL_DIR} \
-                            --report-dir ${REPORT_DIR}
+                        python model_testing.py --data-dir ${DATA_DIR} --model-dir ${MODEL_DIR} --report-dir ${REPORT_DIR}
                     '''
-                }
-            }
-            post {
-                always {
-                    // Публикация метрик в консоль Jenkins
-                    junit allowEmptyResults: true, testResults: 'lab2/artifacts/reports/*.xml'
-                }
-            }
-        }
-        
-        stage('Export Pipeline') {
-            steps {
-                script {
-                    // Экспорт конфигурации пайплайна
-                    sh '''
-                        cd lab2
-                        cp Jenkinsfile pipeline_export.txt
-                        echo "Pipeline exported at $(date)" >> pipeline_export.txt
-                    '''
-                }
-            }
-            post {
-                success {
-                    archiveArtifacts artifacts: 'lab2/pipeline_export.txt', allowEmptyArchive: true
                 }
             }
         }
@@ -126,14 +81,18 @@ pipeline {
     
     post {
         always {
-            cleanWs(cleanDescriptions: true, deleteDirs: true, 
-                   disableDeferredWipeout: true, notFailBuild: true)
+            cleanWs(
+                cleanWhenAborted: false,
+                notFailBuild: true,
+                deleteDirs: true,
+                disableDeferredWipeout: false
+            )
         }
         failure {
-            echo "❌ Пайплайн завершился с ошибкой. Проверьте логи."
+            echo "❌ Ошибка в пайплайне. Проверьте Console Output."
         }
         success {
-            echo "🎉 ML-конвейер успешно завершён!"
+            echo "🎉 Сборка успешна!"
         }
     }
 }
