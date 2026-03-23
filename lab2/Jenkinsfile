@@ -1,0 +1,139 @@
+pipeline {
+    agent any
+    
+    environment {
+        PYTHON_VENV = "${WORKSPACE}/venv"
+        DATA_DIR = "${WORKSPACE}/lab2/artifacts/data"
+        MODEL_DIR = "${WORKSPACE}/lab2/artifacts/models"
+        REPORT_DIR = "${WORKSPACE}/lab2/artifacts/reports"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Код получен из репозитория"
+            }
+        }
+        
+        stage('Setup Python Environment') {
+            steps {
+                script {
+                    // Создание виртуального окружения
+                    sh '''
+                        cd lab2
+                        python3 -m venv ${PYTHON_VENV}
+                        source ${PYTHON_VENV}/bin/activate
+                        pip install --upgrade pip
+                        pip install -r requirements.txt
+                    '''
+                }
+            }
+        }
+        
+        stage('Data Creation') {
+            steps {
+                script {
+                    sh '''
+                        source ${PYTHON_VENV}/bin/activate
+                        cd lab2
+                        python data_creation.py \
+                            --source synthetic \
+                            --output-dir ${DATA_DIR}
+                    '''
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'lab2/artifacts/data/*.csv', allowEmptyArchive: false
+                }
+            }
+        }
+        
+        stage('Data Preprocessing') {
+            steps {
+                script {
+                    sh '''
+                        source ${PYTHON_VENV}/bin/activate
+                        cd lab2
+                        python data_preprocessing.py \
+                            --data-dir ${DATA_DIR} \
+                            --output-dir ${DATA_DIR}
+                    '''
+                }
+            }
+        }
+        
+        stage('Model Training') {
+            steps {
+                script {
+                    sh '''
+                        source ${PYTHON_VENV}/bin/activate
+                        cd lab2
+                        python model_preparation.py \
+                            --data-dir ${DATA_DIR} \
+                            --model-dir ${MODEL_DIR} \
+                            --model-type logistic
+                    '''
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'lab2/artifacts/models/*.pkl', allowEmptyArchive: false
+                }
+            }
+        }
+        
+        stage('Model Testing') {
+            steps {
+                script {
+                    sh '''
+                        source ${PYTHON_VENV}/bin/activate
+                        cd lab2
+                        python model_testing.py \
+                            --data-dir ${DATA_DIR} \
+                            --model-dir ${MODEL_DIR} \
+                            --report-dir ${REPORT_DIR}
+                    '''
+                }
+            }
+            post {
+                always {
+                    // Публикация метрик в консоль Jenkins
+                    junit allowEmptyResults: true, testResults: 'lab2/artifacts/reports/*.xml'
+                }
+            }
+        }
+        
+        stage('Export Pipeline') {
+            steps {
+                script {
+                    // Экспорт конфигурации пайплайна
+                    sh '''
+                        cd lab2
+                        cp Jenkinsfile pipeline_export.txt
+                        echo "Pipeline exported at $(date)" >> pipeline_export.txt
+                    '''
+                }
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'lab2/pipeline_export.txt', allowEmptyArchive: true
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs(cleanDescriptions: true, deleteDirs: true, 
+                   disableDeferredWipeout: true, notFailBuild: true)
+        }
+        failure {
+            echo "❌ Пайплайн завершился с ошибкой. Проверьте логи."
+        }
+        success {
+            echo "🎉 ML-конвейер успешно завершён!"
+        }
+    }
+}
