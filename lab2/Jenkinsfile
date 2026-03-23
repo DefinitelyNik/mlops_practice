@@ -2,10 +2,12 @@ pipeline {
     agent any
     
     environment {
-        PYTHON_VENV = "${WORKSPACE}/lab2/venv"
-        DATA_DIR = "${WORKSPACE}/lab2/artifacts/data"
-        MODEL_DIR = "${WORKSPACE}/lab2/artifacts/models"
-        REPORT_DIR = "${WORKSPACE}/lab2/artifacts/reports"
+        // Пути для Windows
+        PYTHON_VENV = "${WORKSPACE}\\lab2\\venv"
+        DATA_DIR = "${WORKSPACE}\\lab2\\artifacts\\data"
+        MODEL_DIR = "${WORKSPACE}\\lab2\\artifacts\\models"
+        REPORT_DIR = "${WORKSPACE}\\lab2\\artifacts\\reports"
+        VENV_ACTIVATE = "${WORKSPACE}\\lab2\\venv\\Scripts\\activate.bat"
     }
     
     stages {
@@ -18,81 +20,73 @@ pipeline {
         
         stage('Setup Python') {
             steps {
-                script {
-                    sh '''
-                        cd lab2
-                        python3 -m venv venv
-                        source venv/bin/activate
-                        pip install --upgrade pip
-                        pip install -r requirements.txt
-                    '''
-                }
+                bat '''
+                    cd lab2
+                    python -m venv venv
+                    call venv\\Scripts\\activate.bat
+                    python -m pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
             }
         }
         
         stage('Data Creation') {
             steps {
-                script {
-                    sh '''
-                        source ${PYTHON_VENV}/bin/activate
-                        cd lab2
-                        python data_creation.py --output-dir ${DATA_DIR}
-                    '''
-                }
+                bat '''
+                    call lab2\\venv\\Scripts\\activate.bat
+                    cd lab2
+                    python data_creation.py --output-dir artifacts\\data
+                '''
             }
         }
         
         stage('Data Preprocessing') {
             steps {
-                script {
-                    sh '''
-                        source ${PYTHON_VENV}/bin/activate
-                        cd lab2
-                        python data_preprocessing.py --data-dir ${DATA_DIR} --output-dir ${DATA_DIR}
-                    '''
-                }
+                bat '''
+                    call lab2\\venv\\Scripts\\activate.bat
+                    cd lab2
+                    python data_preprocessing.py --data-dir artifacts\\data --output-dir artifacts\\data
+                '''
             }
         }
         
         stage('Model Training') {
             steps {
-                script {
-                    sh '''
-                        source ${PYTHON_VENV}/bin/activate
-                        cd lab2
-                        python model_preparation.py --data-dir ${DATA_DIR} --model-dir ${MODEL_DIR}
-                    '''
-                }
+                bat '''
+                    call lab2\\venv\\Scripts\\activate.bat
+                    cd lab2
+                    python model_preparation.py --data-dir artifacts\\data --model-dir artifacts\\models
+                '''
             }
         }
         
         stage('Model Testing') {
             steps {
-                script {
-                    sh '''
-                        source ${PYTHON_VENV}/bin/activate
-                        cd lab2
-                        python model_testing.py --data-dir ${DATA_DIR} --model-dir ${MODEL_DIR} --report-dir ${REPORT_DIR}
-                    '''
-                }
+                bat '''
+                    call lab2\\venv\\Scripts\\activate.bat
+                    cd lab2
+                    python model_testing.py --data-dir artifacts\\data --model-dir artifacts\\models --report-dir artifacts\\reports
+                '''
             }
         }
     }
     
     post {
         always {
+            // cleanWs работает кроссплатформенно
             cleanWs(
                 cleanWhenAborted: false,
                 notFailBuild: true,
                 deleteDirs: true,
                 disableDeferredWipeout: false
             )
+            echo "🧹 Workspace cleaned"
         }
         failure {
-            echo "❌ Ошибка в пайплайне. Проверьте Console Output."
+            echo "❌ Pipeline failed. Check Console Output."
         }
         success {
-            echo "🎉 Сборка успешна!"
+            echo "🎉 Pipeline completed successfully!"
         }
     }
 }
