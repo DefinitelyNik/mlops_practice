@@ -14,7 +14,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-                echo "✅ Код получен из репозитория"
+                echo "✅ Code received from repo"
             }
         }
         
@@ -73,7 +73,6 @@ pipeline {
     
     post {
         always {
-            // cleanWs работает кроссплатформенно
             cleanWs(
                 cleanWhenAborted: false,
                 notFailBuild: true,

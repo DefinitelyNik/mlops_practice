@@ -32,7 +32,7 @@ def preprocess_data(data_dir='artifacts/data', output_dir='artifacts/data'):
     y_train.to_frame().to_csv(f'{output_dir}/y_train.csv', index=False)
     y_test.to_frame().to_csv(f'{output_dir}/y_test.csv', index=False)
     
-    print("Предобработка завершена. Scaler сохранён.")
+    print("Preprocessing has ended")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

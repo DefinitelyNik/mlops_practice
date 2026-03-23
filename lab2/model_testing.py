@@ -36,7 +36,7 @@ def evaluate_model(data_dir='artifacts/data',
     with open(f'{report_dir}/metrics.json', 'w') as f:
         json.dump(results, f, indent=2)
     
-    print(f"Отчёт сохранён в {report_dir}/metrics.json")
+    print(f"Report saved in {report_dir}/metrics.json")
     return accuracy
 
 if __name__ == "__main__":

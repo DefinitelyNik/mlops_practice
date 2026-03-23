@@ -27,19 +27,19 @@ def create_synthetic_data(n_samples=1000, output_dir='artifacts/data'):
     
     train_df.to_csv(f'{output_dir}/train.csv', index=False)
     test_df.to_csv(f'{output_dir}/test.csv', index=False)
-    print(f"Данные сохранены: train={len(train_df)}, test={len(test_df)}")
+    print(f"Data saved: train={len(train_df)}, test={len(test_df)}")
 
 def download_from_url(url, output_path):
     response = requests.get(url)
     with open(output_path, 'wb') as f:
         f.write(response.content)
-    print(f"Данные скачаны в {output_path}")
+    print(f"Data downloaded in {output_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=str, default='synthetic', 
                        choices=['synthetic', 'url', 'github'])
-    parser.add_argument('--url', type=str, help='URL для скачивания данных')
+    parser.add_argument('--url', type=str, help='URL for data download')
     parser.add_argument('--output-dir', type=str, default='artifacts/data')
     args = parser.parse_args()
     

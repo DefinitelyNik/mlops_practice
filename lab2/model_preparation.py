@@ -22,14 +22,14 @@ def train_model(data_dir='artifacts/data',
     elif model_type == 'random_forest':
         model = RandomForestClassifier(n_estimators=100, random_state=42)
     else:
-        raise ValueError(f"Неизвестный тип модели: {model_type}")
+        raise ValueError(f"Invalid model type: {model_type}")
     
-    print(f"Обучение модели {model_type}...")
+    print(f"Training model: {model_type}...")
     model.fit(X_train, y_train)
     
     model_path = f'{model_dir}/model.pkl'
     joblib.dump(model, model_path)
-    print(f"Модель сохранена в {model_path}")
+    print(f"Model saved in {model_path}")
     
     return model
 
