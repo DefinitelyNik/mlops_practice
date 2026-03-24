@@ -35,7 +35,7 @@ pipeline {
                 bat '''
                     call lab2\\venv\\Scripts\\activate.bat
                     cd lab2
-                    python data_creation.py --output-dir artifacts\\data
+                    python data_creation.py --output-dir artifacts\\data --source synthetic
                 '''
             }
         }
