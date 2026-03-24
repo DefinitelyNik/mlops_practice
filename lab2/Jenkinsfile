@@ -1,0 +1,91 @@
+pipeline {
+    agent any
+    
+    environment {
+        // Пути для Windows
+        PYTHON_VENV = "${WORKSPACE}\\lab2\\venv"
+        DATA_DIR = "${WORKSPACE}\\lab2\\artifacts\\data"
+        MODEL_DIR = "${WORKSPACE}\\lab2\\artifacts\\models"
+        REPORT_DIR = "${WORKSPACE}\\lab2\\artifacts\\reports"
+        VENV_ACTIVATE = "${WORKSPACE}\\lab2\\venv\\Scripts\\activate.bat"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "✅ Code received from repo"
+            }
+        }
+        
+        stage('Setup Python') {
+            steps {
+                bat '''
+                    cd lab2
+                    python -m venv venv
+                    call venv\\Scripts\\activate.bat
+                    python -m pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+        
+        stage('Data Creation') {
+            steps {
+                bat '''
+                    call lab2\\venv\\Scripts\\activate.bat
+                    cd lab2
+                    python data_creation.py --output-dir artifacts\\data --source synthetic
+                '''
+            }
+        }
+        
+        stage('Data Preprocessing') {
+            steps {
+                bat '''
+                    call lab2\\venv\\Scripts\\activate.bat
+                    cd lab2
+                    python data_preprocessing.py --data-dir artifacts\\data --output-dir artifacts\\data
+                '''
+            }
+        }
+        
+        stage('Model Training') {
+            steps {
+                bat '''
+                    call lab2\\venv\\Scripts\\activate.bat
+                    cd lab2
+                    python model_preparation.py --data-dir artifacts\\data --model-dir artifacts\\models
+                '''
+            }
+        }
+        
+        stage('Model Testing') {
+            steps {
+                bat '''
+                    call lab2\\venv\\Scripts\\activate.bat
+                    cd lab2
+                    python model_testing.py --data-dir artifacts\\data --model-dir artifacts\\models --report-dir artifacts\\reports
+                '''
+            }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs(
+                cleanWhenAborted: false,
+                notFailBuild: true,
+                deleteDirs: true,
+                disableDeferredWipeout: false
+            )
+            echo "🧹 Workspace cleaned"
+        }
+        failure {
+            echo "❌ Pipeline failed. Check Console Output."
+        }
+        success {
+            echo "🎉 Pipeline completed successfully!"
+        }
+    }
+}
